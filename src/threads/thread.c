@@ -71,6 +71,8 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+static bool ready_sort(const struct list_elem* a, const struct list_elem* b, void* aux UNUSED);
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -246,6 +248,7 @@ thread_unblock (struct thread *t)
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
+  list_sort(&ready_list, ready_sort, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -315,8 +318,10 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread) 
+  if (cur != idle_thread) {
     list_push_back (&ready_list, &cur->elem);
+    list_sort(&ready_list, ready_sort, NULL);
+  }
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -343,7 +348,18 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  struct thread* cur = thread_current ();
+  int old_priority = cur->priority;
+  enum intr_level old_level;
+
+  cur->priority = new_priority;
+
+  if (cur->priority > old_priority){
+    old_level = intr_disable();
+    schedule();
+    intr_set_level(old_level);
+  }
+
 }
 
 /* Returns the current thread's priority. */
@@ -585,3 +601,17 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+static bool ready_sort(const struct list_elem* a, const struct list_elem* b, void* aux UNUSED) {
+  struct thread* th1;
+  struct thread* th2;
+
+  ASSERT(a != NULL && b != NULL);
+
+  th1 = list_entry(a, struct thread, elem);
+  th2 = list_entry(b, struct thread, elem);
+
+  return (th1->priority > th2->priority);
+
+}
