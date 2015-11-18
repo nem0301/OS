@@ -1,9 +1,11 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
 
+
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/thread.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -80,6 +82,7 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+
 struct thread
   {
     /* Owned by thread.c. */
