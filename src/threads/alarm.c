@@ -37,13 +37,12 @@ void alarm_check(void) {
 
   old_level = intr_disable();
 
-  if (!list_empty(&alarms)) {
-    al = list_entry(list_begin(&alarms), struct alarm, elem);
+  while (!list_empty(&alarms)
+      && (al = list_entry(list_begin(&alarms), struct alarm, elem))->expiration
+          <= timer_ticks()) {
+    list_remove(&al->elem);
+    thread_unblock(al->th);
 
-    if (al->expiration < timer_ticks()) {
-      list_remove(&al->elem);
-      thread_unblock(al->th);
-    }
   }
 
   intr_set_level(old_level);
