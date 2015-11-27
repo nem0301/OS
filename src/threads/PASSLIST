@@ -4,7 +4,7 @@ alarm-simultaneous          PASS
 alarm-priority              PASS
 alarm-zero                  PASS
 alarm-negative              PASS
-priority-change             FAIL
+priority-change             PASS
 priority-donate-one         FAIL
 priority-donate-multiple    FAIL
 priority-donate-multiple2   FAIL

@@ -347,16 +347,26 @@ thread_set_priority (int new_priority)
 {
   struct thread* cur = thread_current ();
   int old_priority = cur->priority;
-  enum intr_level old_level;
+
+  cur->priority = new_priority;
+  cur->original_priority = new_priority;
+
+  if (cur->priority < old_priority){
+    thread_yield();
+  }
+}
+
+void
+thread_set_priority_not_origin (int new_priority)
+{
+  struct thread* cur = thread_current ();
+  int old_priority = cur->priority;
 
   cur->priority = new_priority;
 
-  if (cur->priority > old_priority){
-    old_level = intr_disable();
-    schedule();
-    intr_set_level(old_level);
+  if (cur->priority < old_priority){
+    thread_yield();
   }
-
 }
 
 /* Returns the current thread's priority. */
