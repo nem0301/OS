@@ -32,6 +32,8 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+static bool wait_sort(const struct list_elem* a, const struct list_elem* b, void* aux UNUSED);
+
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
    manipulating it:
@@ -47,6 +49,7 @@ sema_init (struct semaphore *sema, unsigned value)
   ASSERT (sema != NULL);
 
   sema->value = value;
+  sema->holder = NULL;
   list_init (&sema->waiters);
 }
 
@@ -68,10 +71,14 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
+      if (sema->holder != NULL && thread_get_priority() > sema->holder->priority){
+        sema->holder->priority = thread_get_priority();
+      }
       list_push_back (&sema->waiters, &thread_current ()->elem);
       thread_block ();
     }
   sema->value--;
+  sema->holder = thread_current();
   intr_set_level (old_level);
 }
 
@@ -108,16 +115,27 @@ sema_try_down (struct semaphore *sema)
 void
 sema_up (struct semaphore *sema) 
 {
+  struct thread* next = NULL;
   enum intr_level old_level;
 
   ASSERT (sema != NULL);
 
+
   old_level = intr_disable ();
-  if (!list_empty (&sema->waiters)) 
-    thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                struct thread, elem));
+  if (!list_empty (&sema->waiters)) {
+    list_sort(&sema->waiters, wait_sort, NULL);
+    next = list_entry (list_pop_front (&sema->waiters), struct thread, elem);
+    thread_unblock(next);
+  }
   sema->value++;
+  if (sema->holder != NULL) {
+    sema->holder->priority = sema->holder->original_priority;
+    sema->holder = NULL;
+  }
   intr_set_level (old_level);
+  if (next != NULL && (next->priority > thread_get_priority())){
+    thread_yield();
+  }
 }
 
 static void sema_test_helper (void *sema_);
@@ -335,4 +353,17 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+static bool wait_sort(const struct list_elem* a, const struct list_elem* b, void* aux UNUSED) {
+  struct thread* th1;
+  struct thread* th2;
+
+  ASSERT(a != NULL && b != NULL);
+
+  th1 = list_entry(a, struct thread, elem);
+  th2 = list_entry(b, struct thread, elem);
+
+  return (th1->priority > th2->priority);
+
 }

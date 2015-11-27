@@ -356,19 +356,6 @@ thread_set_priority (int new_priority)
   }
 }
 
-void
-thread_set_priority_not_origin (int new_priority)
-{
-  struct thread* cur = thread_current ();
-  int old_priority = cur->priority;
-
-  cur->priority = new_priority;
-
-  if (cur->priority < old_priority){
-    thread_yield();
-  }
-}
-
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
@@ -491,6 +478,7 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->original_priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }
