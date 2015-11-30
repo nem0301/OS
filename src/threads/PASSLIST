@@ -11,10 +11,10 @@ priority-donate-multiple2   FAIL
 priority-donate-nest        FAIL
 priority-donate-sema        PASS
 priority-donate-lower       FAIL
-priority-fifo               FAIL
-priority-preempt            FAIL
+priority-fifo               PASS
+priority-preempt            PASS
 priority-sema               PASS
-priority-condvar            FAIL
+priority-condvar            PASS
 priority-donate-chain       FAIL
 mlfqs-load-1                FAIL
 mlfqs-load-60               FAIL
