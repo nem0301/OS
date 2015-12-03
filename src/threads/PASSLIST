@@ -21,4 +21,4 @@ mlfqs-load-60               FAIL
 mlfqs-load-avg              FAIL
 mlfqs-recent-1              FAIL
 mlfqs-fair                  FAIL
-mlfqs-block                 FAIL
+mlfqs-block                 PASS
