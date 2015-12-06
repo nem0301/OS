@@ -17,6 +17,8 @@ void alarm_insert(int64_t tick) {
 
   old_level = intr_disable();
 
+  //printf("%s %d\n", thread_current()->name, (int)tick);
+
   al = (struct alarm*) malloc (sizeof (struct alarm));
   al->expiration = tick;
   al->th = cur;
@@ -42,7 +44,6 @@ void alarm_check(void) {
           <= timer_ticks()) {
     list_remove(&al->elem);
     thread_unblock(al->th);
-
   }
 
   intr_set_level(old_level);

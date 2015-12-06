@@ -50,6 +50,7 @@ static long long kernel_ticks; /* # of timer ticks in kernel threads. */
 static long long user_ticks; /* # of timer ticks in user programs. */
 
 /* Scheduling. */
+#define TIME_SLICE 4
 static unsigned thread_ticks; /* # of timer ticks since last yield. */
 
 /* If false (default), use round-robin scheduler.
@@ -131,7 +132,7 @@ void thread_tick(void) {
   else
     kernel_ticks++;
 
-  if (++thread_ticks >= 4){
+  if (++thread_ticks >= TIME_SLICE){
     intr_yield_on_return();
   }
 }
@@ -351,19 +352,11 @@ int thread_get_priority(void) {
 /* Sets the current thread's nice value to NICE. */
 void thread_set_nice(int nice) {
   struct thread* th = thread_current();
-  int old_priority = th->priority;
-  int load = load_avg * 2;
 
   th->nice = nice;
   update_thread_recent_cpu(th);
   update_thread_priority(th);
-  list_sort(&ready_list, ready_sort, NULL);
-
-  //printf("%d\n", th->priority);
-
-//  if (old_priority > th->priority){
-//    thread_yield();
-//  }
+  //list_sort(&ready_list, ready_sort, NULL);
 }
 
 /* Returns the current thread's nice value. */
@@ -379,7 +372,7 @@ int thread_get_load_avg(void) {
 /* Returns 100 times the current thread's recent_cpu value. */
 int thread_get_recent_cpu(void) {
   //return TOINTNEAR(thread_current()->recent_cpu * 100);
-  return TOINTNEAR(thread_current()->recent_cpu);
+  return TOINTNEAR(thread_current()->recent_cpu * 100);
 }
 
 //update load_avg value
@@ -396,6 +389,9 @@ void update_load_avg(void) {
 }
 
 void update_thread_recent_cpu(struct thread* th){
+  if (th == idle_thread) {
+      return;
+  }
   int load = 2 * load_avg;
   th->recent_cpu  = ((int64_t)((int64_t)load) * frac / (load + TOFIX(1)))
                   * th->recent_cpu / frac
@@ -406,7 +402,7 @@ void update_thread_priority(struct thread* th) {
   if (th == idle_thread) {
     return;
   }
-  th->priority = TOINTNEAR(TOFIX(PRI_MAX) - (int64_t)th->recent_cpu * frac / TOFIX(4) - TOFIX(th->nice * 2));
+  th->priority = PRI_MAX - TOINTZERO(th->recent_cpu / 4)  - th->nice * 2;
 
   if (th->priority > PRI_MAX)
     th->priority = PRI_MAX;
@@ -527,8 +523,8 @@ static void init_thread(struct thread *t, const char *name, int priority) {
   if (thread_mlfqs) {
     if (t == initial_thread)
       t->nice = 0;
-    else
-      t->nice = thread_get_nice();
+//    else
+//      t->nice = thread_get_nice();
 
     if (t == initial_thread) {
       t->recent_cpu = 0;

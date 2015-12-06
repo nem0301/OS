@@ -175,8 +175,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
   thread_tick ();
   if (thread_mlfqs){
 
-    thread_current()->recent_cpu += TOFIX(100);
-    //printf("%d\n", thread_get_load_avg());
+    thread_current()->recent_cpu += TOFIX(1);
     if (ticks % TIMER_FREQ == 0) {
       update_load_avg();
       update_recent_cpu();

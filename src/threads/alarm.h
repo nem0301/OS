@@ -7,6 +7,7 @@
 #include "devices/timer.h"
 #include "threads/thread.h"
 #include <stdio.h>
+#include <stdint.h>
 
 struct alarm {
   int64_t expiration;

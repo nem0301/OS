@@ -17,8 +17,11 @@ priority-donate-sema        PASS
 priority-donate-lower       FAIL
 priority-donate-chain       FAIL
 mlfqs-load-1                PASS
-mlfqs-load-60               FAIL
+mlfqs-load-60               PASS
 mlfqs-load-avg              PASS
 mlfqs-recent-1              PASS
-mlfqs-fair                  FAIL
-mlfqs-block                 FAIL
+mlfqs-fair-2                PASS
+mlfqs-fair-10               PASS
+mlfqs-nice-2                PASS
+mlfqs-nice-10               PASS
+mlfqs-block                 PASS
