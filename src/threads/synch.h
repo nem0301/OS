@@ -7,6 +7,7 @@
 /* A counting semaphore. */
 struct semaphore 
   {
+    struct thread* holder;
     unsigned value;             /* Current value. */
     struct list waiters;        /* List of waiting threads. */
   };

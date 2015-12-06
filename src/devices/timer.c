@@ -174,7 +174,11 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
   if (thread_mlfqs){
-    thread_current()->recent_cpu += 1;
+    if ( thread_current()->magic == 0xcd6abf4b)
+      thread_current()->recent_cpu += TOFIX(1);
+      //printf("%s %d\n", thread_current()->name,thread_current()->recent_cpu);
+//    if( thread_current()->magic == 0xcd6abf4b)
+//      printf("%s %d %d\n", thread_current()->name, thread_current()->recent_cpu, thread_current()->priority);
     if (timer_ticks() % TIMER_FREQ == 0) {
       update_load_avg();
       update_recent_cpu();

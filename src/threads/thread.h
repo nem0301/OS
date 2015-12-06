@@ -26,6 +26,12 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+//macro about calculation for fixed point
+#define frac (1 << 14)
+#define TOFIX(n) (n) * (frac)
+#define TOINTZERO(x) (x) / (frac)
+#define TOINTNEAR(x) x >= 0? ((x) + ((frac) / (2))) / (frac) : ((x) - ((frac) / (2))) / (frac)
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -91,9 +97,12 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    int original_priority;
+    bool donated;
     struct list_elem allelem;           /* List element for all threads list. */
     int nice;
     int recent_cpu;
+    struct list sema_list;
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
