@@ -174,21 +174,18 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
   if (thread_mlfqs){
-    if ( thread_current()->magic == 0xcd6abf4b)
-      thread_current()->recent_cpu += TOFIX(1);
-      //printf("%s %d\n", thread_current()->name,thread_current()->recent_cpu);
-//    if( thread_current()->magic == 0xcd6abf4b)
-//      printf("%s %d %d\n", thread_current()->name, thread_current()->recent_cpu, thread_current()->priority);
-    if (timer_ticks() % TIMER_FREQ == 0) {
+
+    thread_current()->recent_cpu += TOFIX(100);
+    //printf("%d\n", thread_get_load_avg());
+    if (ticks % TIMER_FREQ == 0) {
       update_load_avg();
       update_recent_cpu();
     }
-    if (timer_ticks() % 4 == 0){
+    if (ticks % 4 == 3){
       update_threads_priority();
     }
   }
   alarm_check();
-
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

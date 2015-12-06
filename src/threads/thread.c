@@ -130,6 +130,10 @@ void thread_tick(void) {
 #endif
   else
     kernel_ticks++;
+
+  if (++thread_ticks >= 4){
+    intr_yield_on_return();
+  }
 }
 
 /* Prints thread statistics. */
@@ -198,8 +202,9 @@ tid_t thread_create(const char *name, int priority, thread_func *function,
   /* Add to run queue. */
   thread_unblock(t);
 
-  if (thread_mlfqs)
-    t->priority = thread_get_priority();
+  if (thread_mlfqs) {
+    update_thread_priority(t);
+  }
 
   if (thread_current()->priority < t->priority)
     thread_yield();
@@ -344,8 +349,21 @@ int thread_get_priority(void) {
 }
 
 /* Sets the current thread's nice value to NICE. */
-void thread_set_nice(int nice UNUSED) {
-  thread_current()->nice = nice;
+void thread_set_nice(int nice) {
+  struct thread* th = thread_current();
+  int old_priority = th->priority;
+  int load = load_avg * 2;
+
+  th->nice = nice;
+  update_thread_recent_cpu(th);
+  update_thread_priority(th);
+  list_sort(&ready_list, ready_sort, NULL);
+
+  //printf("%d\n", th->priority);
+
+//  if (old_priority > th->priority){
+//    thread_yield();
+//  }
 }
 
 /* Returns the current thread's nice value. */
@@ -360,7 +378,8 @@ int thread_get_load_avg(void) {
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int thread_get_recent_cpu(void) {
-  return TOINTNEAR(thread_current()->recent_cpu * 100);
+  //return TOINTNEAR(thread_current()->recent_cpu * 100);
+  return TOINTNEAR(thread_current()->recent_cpu);
 }
 
 //update load_avg value
@@ -372,22 +391,38 @@ void update_load_avg(void) {
   } else {
     ready_threads = list_size(&ready_list);
   }
-  load_avg = ((int64_t) (TOFIX(59) / 60)) * load_avg / frac
+  load_avg = ((int64_t)(TOFIX(59) / 60)) * load_avg / frac
       + (TOFIX(1) / 60) * ready_threads;
 }
 
+void update_thread_recent_cpu(struct thread* th){
+  int load = 2 * load_avg;
+  th->recent_cpu  = ((int64_t)((int64_t)load) * frac / (load + TOFIX(1)))
+                  * th->recent_cpu / frac
+                  + TOFIX(th->nice);
+}
+
+void update_thread_priority(struct thread* th) {
+  if (th == idle_thread) {
+    return;
+  }
+  th->priority = TOINTNEAR(TOFIX(PRI_MAX) - (int64_t)th->recent_cpu * frac / TOFIX(4) - TOFIX(th->nice * 2));
+
+  if (th->priority > PRI_MAX)
+    th->priority = PRI_MAX;
+
+  if (th->priority < PRI_MIN)
+    th->priority = PRI_MIN;
+}
+
 void update_recent_cpu(void) {
-  int load = load_avg * 2;
   struct list_elem* elem;
   struct thread* th;
 
   elem = list_begin(&all_list);
   while (elem != list_end(&all_list)) {
     th = list_entry(elem, struct thread, allelem);
-    th->recent_cpu = (int64_t) ((int64_t) load / (load + TOFIX(1)) * frac)
-        * th->recent_cpu / frac + TOFIX(th->nice);
-//    if (th != idle_thread)
-//      printf("%s %d %d\n", th->name, th->recent_cpu, th->priority);
+    update_thread_recent_cpu(th);
     elem = list_next(elem);
   }
 }
@@ -399,18 +434,14 @@ void update_threads_priority(void) {
   elem = list_begin(&all_list);
   while (elem != list_end(&all_list)) {
     th = list_entry(elem, struct thread, allelem);
-    th->priority = PRI_MAX - TOINTNEAR(th->recent_cpu / 4) - (th->nice * 2);
-
+    update_thread_priority(th);
     elem = list_next(elem);
-
-    if (th->priority > PRI_MAX)
-      th->priority = PRI_MAX;
-
-    if (th->priority < PRI_MIN)
-      th->priority = PRI_MIN;
   }
   list_sort(&ready_list, ready_sort, NULL);
 }
+
+
+
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
@@ -492,11 +523,20 @@ static void init_thread(struct thread *t, const char *name, int priority) {
 
   list_init(&t->sema_list);
 
-  if (t == initial_thread)
-    t->nice = 0;
-  else
-    t->nice = thread_get_nice();
-  t->recent_cpu = 0;
+
+  if (thread_mlfqs) {
+    if (t == initial_thread)
+      t->nice = 0;
+    else
+      t->nice = thread_get_nice();
+
+    if (t == initial_thread) {
+      t->recent_cpu = 0;
+    } else {
+      update_thread_recent_cpu(t);
+    }
+  }
+
   list_push_back(&all_list, &t->allelem);
 }
 
